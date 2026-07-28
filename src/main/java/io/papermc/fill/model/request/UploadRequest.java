@@ -15,11 +15,14 @@
  */
 package io.papermc.fill.model.request;
 
+import io.papermc.fill.model.Download;
 import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public record UploadRequest(
-  UUID id
+  UUID id,
+  Download download,
+  String contentMd5
 ) {
 }

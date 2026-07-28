@@ -15,10 +15,12 @@
  */
 package io.papermc.fill.model.response;
 
+import java.net.URI;
 import org.jspecify.annotations.NullMarked;
 
 @NullMarked
 public record UploadResponse(
-  boolean ok
+  boolean ok,
+  URI url
 ) {
 }
