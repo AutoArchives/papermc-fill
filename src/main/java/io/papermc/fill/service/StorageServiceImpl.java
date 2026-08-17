@@ -24,12 +24,14 @@ import io.papermc.fill.model.Project;
 import io.papermc.fill.model.Version;
 import io.papermc.fill.s3.S3Configuration;
 import io.papermc.fill.util.http.Headers;
+import io.papermc.fill.util.http.MediaTypes;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -119,17 +121,15 @@ public class StorageServiceImpl implements StorageService {
   @Override
   public URI createUploadUrl(
     final UUID id,
-    final Download download,
-    final String contentMd5,
-    final MimeType type
+    final Download download
   ) throws StorageWriteException {
     final String path = stagingPath(id, download.name());
     final PutObjectRequest request = PutObjectRequest.builder()
       .bucket(this.properties.storage().s3().bucket())
       .key(path)
       .contentLength((long) download.size())
-      .contentType(type.toString())
-      .contentMD5(contentMd5)
+      .contentType(download.type())
+      .contentMD5(download.checksums().md5())
       .metadata(Map.of("sha256", download.checksums().sha256()))
       .build();
     try {

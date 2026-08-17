@@ -15,26 +15,20 @@
  */
 package io.papermc.fill.notification;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.papermc.fill.database.WebhookEntity;
 import io.papermc.fill.event.FillEvent;
 import io.papermc.fill.model.DeliveryStatus;
 import io.papermc.fill.service.WebhookService;
 import io.papermc.fill.util.concurrent.ConcurrentUtil;
 import jakarta.annotation.PreDestroy;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.time.Clock;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import org.jspecify.annotations.NullMarked;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,10 +69,10 @@ public class WebhookPublisher {
   private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
   private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(10);
 
-  private final WebhookService webhooks;
   private final Clock clock;
   private final ObjectMapper json;
   private final RestClient http;
+  private final WebhookService webhooks;
   private final RetryTemplate retry = new RetryTemplate(RetryPolicy.builder()
     .maxRetries(MAX_ATTEMPTS - 1)
     .delay(Duration.ofSeconds(1))
@@ -95,10 +89,14 @@ public class WebhookPublisher {
   private final Semaphore concurrency = new Semaphore(MAX_CONCURRENT_DELIVERIES);
 
   @Autowired
-  public WebhookPublisher(final WebhookService webhooks, final Clock clock, final ObjectMapper json) {
-    this.webhooks = webhooks;
+  public WebhookPublisher(
+    final Clock clock,
+    final ObjectMapper json,
+    final WebhookService webhooks
+    ) {
     this.clock = clock;
     this.json = json;
+    this.webhooks = webhooks;
     final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
     requestFactory.setConnectTimeout(CONNECT_TIMEOUT);
     requestFactory.setReadTimeout(READ_TIMEOUT);
@@ -156,7 +154,7 @@ public class WebhookPublisher {
     final String signature;
     try {
       body = this.createPayload(event);
-      signature = createSignature(webhook.secret(), deliveryId, timestamp, body);
+      signature = WebhookService.createSignature(webhook.secret(), deliveryId, timestamp, body);
     } catch (final Exception exception) {
       LOGGER.error("Failed to prepare webhook delivery {} to {}", deliveryId, webhook.url(), exception);
       this.webhooks.recordDelivery(webhook, DeliveryStatus.FAILED);
@@ -215,26 +213,6 @@ public class WebhookPublisher {
       return this.json.writeValueAsBytes(WebhookPayload.from(event));
     } catch (final JacksonException exception) {
       throw new IllegalStateException("Could not serialize webhook payload", exception);
-    }
-  }
-
-  @VisibleForTesting
-  static String createSignature(final String secret, final String deliveryId, final String timestamp, final byte[] body) {
-    try {
-      final Mac mac = Mac.getInstance("HmacSHA256");
-      if (!secret.startsWith("whsec_")) {
-        throw new IllegalArgumentException("Invalid webhook secret prefix");
-      }
-      final byte[] key = Base64.getDecoder().decode(secret.substring("whsec_".length()));
-      mac.init(new SecretKeySpec(key, "HmacSHA256"));
-      mac.update(deliveryId.getBytes(StandardCharsets.UTF_8));
-      mac.update((byte) '.');
-      mac.update(timestamp.getBytes(StandardCharsets.UTF_8));
-      mac.update((byte) '.');
-      mac.update(body);
-      return "v1," + Base64.getEncoder().encodeToString(mac.doFinal());
-    } catch (final GeneralSecurityException exception) {
-      throw new IllegalStateException("Could not create webhook signature", exception);
     }
   }
 

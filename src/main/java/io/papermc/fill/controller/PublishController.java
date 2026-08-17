@@ -240,6 +240,7 @@ public class PublishController {
 
   private static Checksums createChecksums(final byte[] bytes) {
     return new Checksums(
+      HashAlgorithm.MD5.hash(bytes).toString(),
       HashAlgorithm.SHA256.hash(bytes).toString()
     );
   }
