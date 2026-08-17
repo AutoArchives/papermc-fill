@@ -13,25 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.papermc.fill.notification;
+package io.papermc.fill.service;
 
-import java.nio.charset.StandardCharsets;
 import org.jspecify.annotations.NullMarked;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @NullMarked
-class WebhookPublisherTest {
+public class StorageServiceImplTest {
   @Test
-  void signsWithDecodedStandardWebhookSecret() {
-    final String signature = WebhookPublisher.createSignature(
-      "whsec_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
-      "fill_test",
-      "1700000000",
-      "{\"type\":\"build.published\"}".getBytes(StandardCharsets.UTF_8)
-    );
-
-    assertEquals("v1,gjBnzVZudyFih59/Knjh7oE1wC2z3CMPV2RkxEBJBQk=", signature);
+  public void testGenerateContentMd5() {
+    assertEquals("KndzvmIXlaWHkzx9lrRUSw==", StorageServiceImpl.generateContentMd5("2a7773be621795a587933c7d96b4544b"));
   }
 }

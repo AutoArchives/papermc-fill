@@ -39,6 +39,7 @@ import io.papermc.fill.model.request.v3.PublishRequest;
 import io.papermc.fill.service.StorageService;
 import io.papermc.fill.util.discord.DiscordNotificationChannel;
 import io.papermc.fill.util.git.GitRepository;
+import io.papermc.fill.util.http.MediaTypes;
 import java.net.URI;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -203,7 +204,7 @@ public class Publishing3ControllerTest {
 
     final ResponseEntity<?> response = this.controller.publish(request);
 
-    assertEquals(HttpStatus.CREATED, response.getStatusCode());
+    assertEquals(HttpStatus.OK, response.getStatusCode());
     for (final Download download : request.downloads().values()) {
       verify(this.storage).deleteStagedObject(UPLOAD_ID, download.name());
     }
@@ -214,8 +215,8 @@ public class Publishing3ControllerTest {
 
   private static PublishRequest request() {
     final Map<String, Download> downloads = new LinkedHashMap<>();
-    downloads.put("server:default", new Download("paper.jar", new Checksums("a".repeat(64)), 100));
-    downloads.put("server:mojang", new Download("paper-mojang.jar", new Checksums("b".repeat(64)), 200));
+    downloads.put("server:default", new Download("paper.jar", MediaTypes.APPLICATION_JAVA_ARCHIVE_VALUE, new Checksums("a".repeat(32), "a".repeat(64)), 100));
+    downloads.put("server:mojang", new Download("paper-mojang.jar", MediaTypes.APPLICATION_JAVA_ARCHIVE_VALUE, new Checksums("a".repeat(32), "b".repeat(64)), 200));
     return new PublishRequest(
       UPLOAD_ID,
       PROJECT.key(),
