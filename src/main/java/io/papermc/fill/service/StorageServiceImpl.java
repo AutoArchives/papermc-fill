@@ -15,6 +15,8 @@
  */
 package io.papermc.fill.service;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.BaseEncoding;
 import io.papermc.fill.configuration.properties.ApplicationApiProperties;
 import io.papermc.fill.exception.StorageReadException;
 import io.papermc.fill.exception.StorageWriteException;
@@ -24,14 +26,13 @@ import io.papermc.fill.model.Project;
 import io.papermc.fill.model.Version;
 import io.papermc.fill.s3.S3Configuration;
 import io.papermc.fill.util.http.Headers;
-import io.papermc.fill.util.http.MediaTypes;
 import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -129,7 +130,7 @@ public class StorageServiceImpl implements StorageService {
       .key(path)
       .contentLength((long) download.size())
       .contentType(download.type())
-      .contentMD5(download.checksums().md5())
+      .contentMD5(generateContentMd5(download.checksums().md5()))
       .metadata(Map.of("sha256", download.checksums().sha256()))
       .build();
     try {
@@ -140,6 +141,11 @@ public class StorageServiceImpl implements StorageService {
     } catch (final SdkException e) {
       throw createStorageWriteException(download, path, "s3 exception", e);
     }
+  }
+
+  @VisibleForTesting
+  static String generateContentMd5(final String string) {
+    return Base64.getEncoder().encodeToString(BaseEncoding.base16().lowerCase().decode(string));
   }
 
   @Override

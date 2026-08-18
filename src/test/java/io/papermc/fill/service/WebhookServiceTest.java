@@ -64,6 +64,7 @@ class WebhookServiceTest {
 
     verify(repository).updateDelivery(webhook._id(), DeliveryStatus.DELIVERED, NOW);
   }
+
   @Test
   void signsWithDecodedStandardWebhookSecret() {
     final String signature = WebhookService.createSignature(
